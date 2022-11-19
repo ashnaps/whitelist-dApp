@@ -27,4 +27,4 @@ contract Whitelist{
     }
 
 }
-
+//Ashnaaaaa!
