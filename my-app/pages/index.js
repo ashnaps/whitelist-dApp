@@ -104,7 +104,7 @@ export default function Home() {
       if (joinedWhitelist) {
         return (
           <div className={styles.description}>
-            Yayyy🙌You are Whitelisted!
+            Yayyy🙌 You are Whitelisted!
           </div>
         );
       } else if (loading) {
