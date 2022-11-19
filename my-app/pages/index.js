@@ -8,6 +8,7 @@ export default function Home() {
   const [walletConnected, setwalletConnected] = useState(false);
   const [numOfWhitelisted, setNumOfWhitelisted] = useState(0);
   const web3ModalRef = useRef();
+  
 
 const getProviderSigner = async(needSigner = false) => {
   try{
