@@ -1,42 +1,131 @@
 import Head from "next/head";
-import Image from "next/image";
 import styles from "../styles/Home.module.css";
+import { providers, Contract } from "ethers";
 import React, { useEffect, useRef, useState } from "react";
-import Web3Modal, { providers } from "web3modal";
+import Web3Modal from "web3modal";
+import { WHITELIST_CONTRACT_ADDRESS, abi } from "../constants";
+
 
 export default function Home() {
   const [walletConnected, setwalletConnected] = useState(false);
-  const [numOfWhitelisted, setNumOfWhitelisted] = useState(0);
+  const [numberOfWhitelisted, setNumberOfWhitelisted] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [joinedWhitelist,setJoinedWhitelist] = useState(false);
   const web3ModalRef = useRef();
-  
 
-const getProviderSigner = async(needSigner = false) => {
-  try{
+
+const getProviderOrSigner = async(needSigner = false) => {
     const provider = await web3ModalRef.current.connect();
-    const web3Provider = new providers.web3Provider(provider);
+    const web3Provider = new providers.Web3Provider(provider);
     const {chainId} = await web3Provider.getNetwork();
     if(chainId !== 5) {
       window.alert("Change the network to Goerli");
       throw new Error("Change the network to Goerli");
     }
+    if(needSigner){
+      const signer = web3Provider.getSigner();
+      return signer;
+    }
     return web3Provider;
+};
+
+const addAddresstoWhitelist = async() => {
+  try{
+    const signer = await getProviderOrSigner(true);
+    const whitelistContract = new Contract(
+      WHITELIST_CONTRACT_ADDRESS,
+      abi,
+      signer
+    );
+    const tx = await whitelistContract.addAddresstoWhitelist();
+    setLoading(true);
+    await tx.wait();
+    setLoading(false);
+    await getNumberOfWhitelisted();
+    setJoinedWhitelist(true);
   }
   catch(err){
     console.error(err);
   }
-}
+};
+
+const checkIfAddressIsWhitelisted = async() => {
+  try{
+    const signer = await getProviderOrSigner(true)
+    const whitelistContract = new Contract(
+      WHITELIST_CONTRACT_ADDRESS,
+      abi,
+      signer
+    );
+    const address = await signer.getAddress();
+    const _joinedWhitelist = await whitelistContract.whitelistedAddress(
+      address
+    );
+    setJoinedWhitelist(_joinedWhitelist);
+  }
+  catch(err){
+    console.error(err);
+  }
+};
+
+const getNumberOfWhitelisted = async () => {
+  try {
+    const provider = await getProviderOrSigner();
+    const whitelistContract = new Contract(
+      WHITELIST_CONTRACT_ADDRESS,
+      abi,
+      provider
+    );
+    const _numberOfWhitelisted =
+      await whitelistContract.numAddressesWhitelisted();
+    setNumberOfWhitelisted(_numberOfWhitelisted);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const renderButton = () => {
+  if(walletConnected){
+    if(joinedWhitelist){
+      return(
+        <div className={styles.description}>
+          yayyy U+1F60e; You've been whitelisted!
+        </div>
+      );
+    }
+    else if(loading) {
+      return <button className={styles.button}>
+        Loading...
+      </button>;
+    }
+    else{
+      return(
+        <button onClick={addAddresstoWhitelist} className={styles.button}>
+          Join the whitelist
+        </button>
+      );
+    } 
+  }
+  else{
+    return(
+    <button onClick={connectWallet} className={styles.button}>
+      Please connect your wallet
+    </button>
+    );
+  }
+};
 
 const connectWallet = async() => {
   try{
-    await getProviderSigner()
-    setwalletConnected(true)
+    await getProviderOrSigner();
+    setwalletConnected(true);
     checkIfAddressIsWhitelisted();
     getNumberOfWhitelisted();
   }
   catch(err){
     console.error(err)
   }
-}
+};
 
   //useeffect: loads the page and asks for pop of wallets, any change in credentials(variables) will load the page again and function will be called
 useEffect(() => {
@@ -56,11 +145,18 @@ useEffect(() => {
       <Head>
         <title>Whitelist dApp</title>
         <meta name="description" content="Whitelist-dApp"/>
+        <link rel = "icon" href="/favicon.ico"/>
       </Head>
         <div className={styles.main}>
+          <div>
           <h1 className={styles.title}>Welcome to Developer's NFT</h1>
           <div className={styles.description}>
-            {numOfWhitelisted} have already joined the Whitelist
+            Its an NFT collection
+          </div>
+          <div className={styles.description}>
+            {numberOfWhitelisted} have already joined the Whitelist
+          </div>
+          {renderButton()}
           </div>
         <div>
           <img className={styles.image} src="./crypto-devs.svg"/></div>  
